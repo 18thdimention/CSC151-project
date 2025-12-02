@@ -2,6 +2,7 @@
 
 (import data)
 (import test)
+(import lab)
 
 
 ;;; (time year month day) -> time?
@@ -140,7 +141,7 @@
 (define years->days 
   (lambda (year)
     (match year
-      [1970 0]
+      [1950 0]
       [_ (+ (days-in-year (- year 1)) (years->days (- year 1)))])))
 
 
@@ -241,7 +242,11 @@
 ;;; Where sunday = 0, Monday = 1 and so on.
 (define day-of-week
   (lambda (time)
-    (remainder (+ (time->timestamp time) 4) 7)))
+    (let ([day-offset (- (remainder (+ (time->timestamp time) 4) 7) 4)])
+      (if (< day-offset 0)
+          (+ day-offset 7)
+          day-offset))))
+        
 
 ;;;TO DO!!!!! MAKE MORE TESTS!!!!;;;
 (test-case "day-of-week 2025-11-24 (monday)"
@@ -252,16 +257,19 @@
   equal? 5
   (lambda () (day-of-week (time 2024 5 10))))
 
+(test-case "day-of-week 1952-5-12 (Thursday)"
+  equal? 4
+  (lambda () (day-of-week (time 1952 6 12))))
 
-(define day-code
-  (list 
-        (pair 2 "Tuesday")
-        (pair 0 "Sunday")
-        (pair 3 "Wednesday")
-        (pair 5 "Friday")
-        (pair 4 "Thursday")
-        (pair 1 "Monday")
-        (pair 6 "Saturday")))
+(test-case "day-of-week 1956-07-28 (Saturday)"
+  equal? 6
+  (lambda () (day-of-week (time 1956 7 28))))
+
+(test-case "day-of-week 1964-12-16 (Wednesday)"
+  equal? 3
+  (lambda () (day-of-week (time 1964 12 16))))
+
+
 
 ;;; (sort-tally-< tally) -> assoc-list?
 ;;;   tally : tally?
@@ -273,6 +281,17 @@
     (let ([sorted-keys (sort (map car tally) <)])
       (map (lambda (key) (pair key (assoc-ref key tally)))
         sorted-keys))))
+
+
+
+(define day-assoc
+  (list (pair "Sunday" 4)
+        (pair "Monday" 5)
+        (pair "Tuesday" 6)
+        (pair "Wednesday" 0)
+        (pair "Thursday" 1)
+        (pair "Friday" 2)
+        (pair "Saturday" 3)))
 
 ;;; (chart-days tally) -> histogram?
 ;;;   tally : assoc-list?
@@ -288,11 +307,72 @@
         "Tallies"
         (map cdr tally)))))
 
+;;; (chart-days tally) -> histogram?
+;;;   tally : assoc-list?
+;;; Given an assoc-list with keys in numeric
+;;; order from 1 to 12 representing months,
+;;; returns a histogram plotting those values.
+(define chart-months
+  (lambda (tally)
+    (plot-category
+      (list "January" "February" "March" "April" "May" "June" 
+            "July" "August" "September" "October" "November" "December")
+        (dataset-bar
+          "Tallies"
+          (map cdr tally)))))
+
+
+;;; (clean-unusable-rows csv-list) -> list?
+;;;   csv-list : list?
+;;; Deletes the first and last rows in the dataset.
+(define clean-unusable-rows
+  (lambda (csv-list)
+    (cdr (list-take csv-list (- (length csv-list) 1)))))
+
+;;; (get-track-popularity list) -> string?
+;;;   list: list?, row of csv file
+;;; Given a parsed csv file, Returns the track popularity
+;;; as a string.
+(define get-track-popularity
+  (section list-ref _ 3))
+
+;;; (list-average list) -> number?
+;;;   list : list?
+;;; Given a list of numbers, returns the
+;;; average of that list.
+(define list-average
+  (lambda (list)
+    (let ([total (apply + list)]
+          [length-of-list (length list)])
+      (/ total length-of-list))))
+
+;;; DAYS BAR GRAPH ;;;
 (with-file-chooser
   (lambda (data)
     (chart-days 
       (sort-tally-<
         (tally-all
           (map (o day-of-week string->time get-release-date)
-            (cdr (parse-csv data))))))))
+            (clean-unusable-rows (parse-csv data))))))))
 
+
+;;; MONTHS BAR GRAPH ;;;
+(with-file-chooser
+  (lambda (data)
+    (chart-months
+      (sort-tally-<
+        (tally-all
+          (map (o time-month string->time get-release-date)
+            (clean-unusable-rows (parse-csv data))))))))
+
+;;; AVERAGE TRACK POPULARITY BY DAY ;;;
+(with-file-chooser
+  (lambda (data)
+    (list-average
+      (map (o string->number get-track-popularity)
+        (filter (section not (equal? 0 _))
+          (clean-unusable-rows (parse-csv data)))))))
+
+
+
+            
