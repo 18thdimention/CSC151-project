@@ -327,26 +327,87 @@
 (define get-track-popularity
   (section list-ref _ 3))
 
-;;; (list-average list) -> number?
-;;;   list : list?
-;;; Given a list of numbers, returns the
-;;; average of that list.
-(define list-average
-  (lambda (list)
-    (let ([total (apply + list)]
-          [length-of-list (length list)])
-      (/ total length-of-list))))
 
-;;; (day-popularity-pair csv-line) -> pair?
+;;; (day-popularity-pair csv-line) -> pair? (of integer?)
 ;;;   csv-line : list? line of the csv file
 ;;; Returns a pair in the form of
 ;;; (pair track-popularity day-of-week)
+(define day-popularity-pair
+  (lambda (csv-line)
+    (let ([track-popularity 
+           (string->number 
+             (get-track-popularity csv-line))]
+          [day 
+           (day-of-week
+              (string->time
+                (get-release-date csv-line)))])
+      (pair track-popularity day))))
 
-;;; (compute-by-day list) -> assoc-list
-;;;   list : list? pairs of popularity and day
-;;; Returns a 7 element association list where 
-;;; the keys are integers from 0 to 6 (day-of-week)
-;;; and the values are average popularity score for each day.
+;;; (cdr-< pair1 pair2) -> boolean?
+;;;   pair1 : pair?
+;;;   pair2 : pair?
+;;; Returns #t if the second
+;;; element of pair1 is less than
+;;; the second element of pair2
+(define cdr-<
+  (lambda (pair1 pair2)
+    (< (cdr pair1) (cdr pair2))))
+
+
+;;; (total-and-number-helper pairs n total elements) -> assoc-list?
+;;;   pairs : list of pair values, car = popularity & cdr = day,
+;;;           ascending order
+;;;   n : zero?
+;;;   total : zero?
+;;;   elements : zero?
+;;; Helper for total-and-number.
+(define total-and-number-helper
+  (lambda (pairs n total elements)
+    (match pairs
+      [null (cons (pair n (list total elements)) null)]
+      [(cons head tail)
+       (if (= n (cdr head))
+           (total-and-number-helper tail n (+ total (car head)) (+ elements 1))
+           (cons (pair n (list total elements)) 
+                 (total-and-number-helper tail (+ n 1) (car head) 1)))])))
+
+;;; (total-and-number-helper pairs n total elements) -> assoc-list?
+;;;   pairs : list of pair values, car = popularity & cdr = day,
+;;;           ascending order
+;;; Given a list of pair values, returns an association list with the day
+;;; as a key and the total summed score and number of elements as a value.
+(define total-and-number
+  (lambda (pairs)
+    (total-and-number-helper pairs 0 0 0)))
+
+
+(total-and-number (list (pair 12 0) (pair 20 0) (pair 23 0) (pair 23 1)) 0 0 0)
+
+(test-case "total-and-number: empty list"
+  equal? (list (pair 0 (list 0 0)))
+  (lambda () (total-and-number null)))
+
+(test-case "total-and-number: one pair"
+  equal? (list (pair 0 (list 12 1)))
+  (lambda () (total-and-number (list (pair 12 0)))))
+
+(test-case "total-and-number: multiple pairs pair"
+  equal? (list (pair 0 (list 55 3)))
+  (lambda () (total-and-number (list (pair 12 0) (pair 20 0) (pair 23 0)))))
+
+
+(test-case "total-and-number: n increments"
+  equal? (list (pair 0 (list 55 3)) (pair 1 (list 43 2)))
+  (lambda () (total-and-number (list (pair 12 0) (pair 20 0) (pair 23 0) (pair 23 1)
+                                     (pair 20 1)))))
+
+(define average
+  (lambda (pair1)
+    (let* ([tail (cdr pair1)]
+           [head (car pair1)]
+           [average (/ (car tail)
+                       (cadr tail))])
+      (pair head average))))
 
 ;;; for satisfactory outcome: visualize track vs artist popularity and release date, color
 ;;; coding based on day of week
@@ -370,15 +431,12 @@
           (map (o time-month string->time get-release-date)
             (clean-unusable-rows (parse-csv data))))))))
 
-;;; AVERAGE TRACK POPULARITY BY DAY ;;;
+;;; AVERAGE TRACK POPULARITY BY DAY ;;; STILL NEEDED: FILTERING OUT CAR 0 FOR THE PAIRS
 (with-file-chooser
   (lambda (data)
-    (list-average
-      (map (o string->number get-track-popularity)
-        (filter (section not (equal? 0 _))
-          (clean-unusable-rows (parse-csv data)))))))
-
-
-
-
-            
+    (map average
+      (total-and-number
+        (sort
+          (map day-popularity-pair
+            (clean-unusable-rows (parse-csv data)))
+          cdr-<)))))        
