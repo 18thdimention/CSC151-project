@@ -38,7 +38,7 @@
 ;;; Defines the number of days in each month.
 (define days-in-months
   (list (pair 1 31)
-        (pair 2 28) ;;;29 in leap year? fix;;;
+        (pair 2 28) 
         (pair 3 31)
         (pair 4 30)
         (pair 5 31)
@@ -284,15 +284,6 @@
 
 
 
-(define day-assoc
-  (list (pair "Sunday" 4)
-        (pair "Monday" 5)
-        (pair "Tuesday" 6)
-        (pair "Wednesday" 0)
-        (pair "Thursday" 1)
-        (pair "Friday" 2)
-        (pair "Saturday" 3)))
-
 ;;; (chart-days tally) -> histogram?
 ;;;   tally : assoc-list?
 ;;; Given an assoc-list with keys in numeric
@@ -372,6 +363,7 @@
       (map (o string->number get-track-popularity)
         (filter (section not (equal? 0 _))
           (clean-unusable-rows (parse-csv data)))))))
+
 
 
 
