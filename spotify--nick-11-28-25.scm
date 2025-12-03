@@ -1,4 +1,4 @@
-; spotify-data.scm
+; spotify-12-3-25.scm
 
 (import data)
 (import test)
@@ -336,6 +336,20 @@
     (let ([total (apply + list)]
           [length-of-list (length list)])
       (/ total length-of-list))))
+
+;;; (day-popularity-pair csv-line) -> pair?
+;;;   csv-line : list? line of the csv file
+;;; Returns a pair in the form of
+;;; (pair track-popularity day-of-week)
+
+;;; (compute-by-day list) -> assoc-list
+;;;   list : list? pairs of popularity and day
+;;; Returns a 7 element association list where 
+;;; the keys are integers from 0 to 6 (day-of-week)
+;;; and the values are average popularity score for each day.
+
+;;; for satisfactory outcome: visualize track vs artist popularity and release date, color
+;;; coding based on day of week
 
 ;;; DAYS BAR GRAPH ;;;
 (with-file-chooser
