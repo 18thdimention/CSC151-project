@@ -1,3 +1,4 @@
+; final project
 ; spotify-12-3-25.scm
 
 (import data)
@@ -348,8 +349,8 @@
 ;;; the keys are integers from 0 to 6 (day-of-week)
 ;;; and the values are average popularity score for each day.
 
-;;; for satisfactory outcome: visualize track vs artist popularity and release date, color
-;;; coding based on day of week
+;;; for satisfactory outcome: visualize track vs artist popularity and release date, 
+;;; color coding based on day of week
 
 ;;; DAYS BAR GRAPH ;;;
 (with-file-chooser
@@ -370,6 +371,73 @@
           (map (o time-month string->time get-release-date)
             (clean-unusable-rows (parse-csv data))))))))
 
+;-------------------------------------------------------------------------------
+
+;;; (track-popularity data) -> list?
+;;;   data: data?
+;;; Returns a list of track popularity scores.
+(define track-popularity
+  (with-file-chooser
+    (lambda (data)
+      (map (o string->number get-track-popularity)
+        (clean-unusable-rows (parse-csv data))))))
+track-popularity
+
+;;; (get-track-popularity list) -> string?
+;;;   list: list?, row of csv file
+;;; Given a parsed csv file, Returns the track popularity
+;;; as a string.
+(define get-artist-popularity
+  (section list-ref _ 6))
+
+;;; (artist-popularity data) -> list?
+;;;   data: data?
+;;; Returns a list of artist popularity scores.
+(define artist-popularity
+  (with-file-chooser
+    (lambda (data)
+      (map (o string->number get-artist-popularity)
+        (clean-unusable-rows (parse-csv data))))))
+artist-popularity
+
+;;; (track-artist data) -> list?
+;;;   data: data?
+;;; Returns a list of pairs of track popularity and artist popularity 
+;;; (removed the pairs that have 0 as a track popularity score).
+(define track-artist
+  (with-file-chooser
+    (lambda (data)
+      (filter (section not (equal? 0 (car _)))
+        (map pair
+          (map (o string->number get-track-popularity)
+            (clean-unusable-rows (parse-csv data)))
+          (map (o string->number get-artist-popularity)
+            (clean-unusable-rows (parse-csv data))))))))
+track-artist
+
+;;; Scatterplot of track popularity and artist popularity ;;;
+(define scatter-for-track-artist
+  (lambda (lst)
+    (with-plot-options
+      (list (pair "x-label" "Track popularity")
+            (pair "y-label" "Artist popularity")
+            (pair "title" "Scatter plot"))
+    (plot-linear
+      (dataset-scatter "Track-popularity and artist-popularity"
+        lst)))))
+
+(with-file-chooser
+  (lambda (data)
+    (scatter-for-track-artist
+      (filter (section not (equal? 0 (car _)))
+        (map pair
+          (map (o string->number get-track-popularity)
+            (clean-unusable-rows (parse-csv data)))
+          (map (o string->number get-artist-popularity)
+            (clean-unusable-rows (parse-csv data))))))))
+
+;-------------------------------------------------------------------------------
+
 ;;; AVERAGE TRACK POPULARITY BY DAY ;;;
 (with-file-chooser
   (lambda (data)
@@ -378,7 +446,3 @@
         (filter (section not (equal? 0 _))
           (clean-unusable-rows (parse-csv data)))))))
 
-
-
-
-            
