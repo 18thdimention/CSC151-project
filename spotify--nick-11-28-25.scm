@@ -1,4 +1,4 @@
-; spotify-data.scm
+; spotify-12-3-25.scm
 
 (import data)
 (import test)
@@ -38,7 +38,7 @@
 ;;; Defines the number of days in each month.
 (define days-in-months
   (list (pair 1 31)
-        (pair 2 28) ;;;29 in leap year? fix;;;
+        (pair 2 28) 
         (pair 3 31)
         (pair 4 30)
         (pair 5 31)
@@ -284,15 +284,6 @@
 
 
 
-(define day-assoc
-  (list (pair "Sunday" 4)
-        (pair "Monday" 5)
-        (pair "Tuesday" 6)
-        (pair "Wednesday" 0)
-        (pair "Thursday" 1)
-        (pair "Friday" 2)
-        (pair "Saturday" 3)))
-
 ;;; (chart-days tally) -> histogram?
 ;;;   tally : assoc-list?
 ;;; Given an assoc-list with keys in numeric
@@ -346,6 +337,20 @@
           [length-of-list (length list)])
       (/ total length-of-list))))
 
+;;; (day-popularity-pair csv-line) -> pair?
+;;;   csv-line : list? line of the csv file
+;;; Returns a pair in the form of
+;;; (pair track-popularity day-of-week)
+
+;;; (compute-by-day list) -> assoc-list
+;;;   list : list? pairs of popularity and day
+;;; Returns a 7 element association list where 
+;;; the keys are integers from 0 to 6 (day-of-week)
+;;; and the values are average popularity score for each day.
+
+;;; for satisfactory outcome: visualize track vs artist popularity and release date, color
+;;; coding based on day of week
+
 ;;; DAYS BAR GRAPH ;;;
 (with-file-chooser
   (lambda (data)
@@ -372,6 +377,7 @@
       (map (o string->number get-track-popularity)
         (filter (section not (equal? 0 _))
           (clean-unusable-rows (parse-csv data)))))))
+
 
 
 
