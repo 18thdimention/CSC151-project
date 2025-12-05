@@ -1,4 +1,11 @@
-; spotify-12-3-25.scm
+; spotify-project.scm
+
+;; CSC 151 Fall
+;; Spotify Data Visualization
+;; Authors: Temni A, Doyeon K, Mayu I, Nick R.
+;; Date: 12/10/2025
+;; Acknowledgements:
+;;   ACKNOWLEDGEMENTS HERE
 
 (import data)
 (import test)
@@ -275,16 +282,15 @@
           (map cdr tally)))))
 
 
-;;; (clean-unusable-rows csv-list) -> list?
-;;;   csv-list : list?
+;;; (parse-and-clean data) -> list?
+;;;   data : file?
+;;; Parses data into csv and
 ;;; Deletes the first and last rows in the dataset.
-(define clean-unusable-rows
-  (lambda (csv-list)
-    (cdr (list-take csv-list (- (length csv-list) 1)))))
+(define parse-and-clean
+  (lambda (data)
+    (let ([csv-list (parse-csv data)])
+      (cdr (list-take csv-list (- (length csv-list) 1))))))
 
-(test-case "clean-unusable-rows: test"
-  equal? (list 2 3 4)
-  (lambda () (clean-unusable-rows (list 1 2 3 4 5))))
 
 ;;; (get-track-popularity list) -> string?
 ;;;   list: list?, row of csv file
@@ -387,8 +393,7 @@
     (sort-tally-<
       (tally-all
         (map (o proc string->time get-release-date)
-          (clean-unusable-rows
-            (parse-csv data)))))))
+          (parse-and-clean data))))))
 
 ;;; (average-popularity-by-time proc data) -> list?
 ;;;   proc: procedure?, takes one row as input and outputs a pair
@@ -402,8 +407,7 @@
         (sort
           (filter (section not (equal? 0 (cdr _)))
             (map proc
-              (clean-unusable-rows 
-                (parse-csv data))))
+              (parse-and-clean data)))
           car-<)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -442,7 +446,7 @@
   (with-file-chooser
     (lambda (data)
       (map (o string->number get-track-popularity)
-        (clean-unusable-rows (parse-csv data))))))
+        (parse-and-clean data)))))
 
 track-popularity
 
@@ -461,7 +465,7 @@ track-popularity
   (with-file-chooser
     (lambda (data)
       (map (o string->number get-artist-popularity)
-        (clean-unusable-rows (parse-csv data))))))
+        (parse-and-clean data)))))
 
 artist-popularity
 
@@ -476,9 +480,9 @@ artist-popularity
       (filter (section not (equal? 0 (car _)))
         (map pair
           (map (o string->number get-track-popularity)
-            (clean-unusable-rows (parse-csv data)))
+            (parse-and-clean data))
           (map (o string->number get-artist-popularity)
-            (clean-unusable-rows (parse-csv data))))))))
+            (parse-and-clean data)))))))
 
 track-artist
 
@@ -499,6 +503,6 @@ track-artist
       (filter (section not (equal? 0 (car _)))
         (map pair
           (map (o string->number get-track-popularity)
-            (clean-unusable-rows (parse-csv data)))
+            (parse-and-clean data))
           (map (o string->number get-artist-popularity)
-            (clean-unusable-rows (parse-csv data))))))))
+            (parse-and-clean data)))))))
