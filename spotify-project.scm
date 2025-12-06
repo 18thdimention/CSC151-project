@@ -299,20 +299,22 @@
 (define get-track-popularity
   (section list-ref _ 3))
 
-;;; (popularity-day-pair csv-line) -> pair? (of integer?)
+;;; (time-popularity-pair proc csv-line) -> pair? (of integer?)
+;;;   proc : procedure? operates on a time and returns 
+;;;          an integer representing a specific element.
 ;;;   csv-line : list? line of the csv file
 ;;; Returns a pair in the form of
-;;; (pair day-of-week track-popularity)
-(define day-popularity-pair
-  (lambda (csv-line)
+;;; (pair time-element track-popularity)
+(define time-popularity-pair
+  (lambda (proc csv-line)
     (let ([track-popularity 
            (string->number 
              (get-track-popularity csv-line))]
-          [day 
-           (day-of-week
+          [time
+           (proc
               (string->time
                 (get-release-date csv-line)))])
-      (pair day track-popularity))))
+      (pair time track-popularity))))
 
 ;;; (car-< pair1 pair2) -> boolean?
 ;;;   pair1 : pair?
@@ -344,33 +346,38 @@
                  (total-and-number-helper tail (+ n 1) (cdr head) 1)))])))
 
 ;;; (total-and-number-helper pairs n total elements) -> assoc-list?
-;;;   pairs : list of pair values, car = day & cdr = popularity,
+;;;   pairs : list of pair values, car = time element & cdr = popularity,
 ;;;           ascending order
-;;; Given a list of pair values, returns an association list with the day
+;;;   n : integer? starting point of time value
+;;; Given a list of pair values, returns an association list with the time
 ;;; as a key and the total summed score and number of elements as a value.
 (define total-and-number
-  (lambda (pairs)
-    (total-and-number-helper pairs 0 0 0)))
+  (lambda (pairs n)
+    (total-and-number-helper pairs n 0 0)))
 
 
 (test-case "total-and-number: empty list"
   equal? (list (pair 0 (list 0 0)))
-  (lambda () (total-and-number null)))
+  (lambda () (total-and-number null 0)))
 
 (test-case "total-and-number: one pair"
   equal? (list (pair 0 (list 12 1)))
-  (lambda () (total-and-number (list (pair 0 12)))))
+  (lambda () (total-and-number (list (pair 0 12)) 0)))
 
 (test-case "total-and-number: multiple pairs pair"
   equal? (list (pair 0 (list 55 3)))
-  (lambda () (total-and-number (list (pair 0 12) (pair 0 20) (pair 0 23)))))
+  (lambda () (total-and-number (list (pair 0 12) (pair 0 20) (pair 0 23)) 0)))
 
 
 (test-case "total-and-number: n increments"
   equal? (list (pair 0 (list 55 3)) (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 0 12) (pair 0 20) (pair 0 23) (pair 1 23)
-                                     (pair 1 20)))))
+                                     (pair 1 20)) 0)))
 
+(test-case "total-and-number: start with 1"
+  equal? (list (pair 1 (list 43 2)))
+  (lambda () (total-and-number (list (pair 1 23)
+                                     (pair 1 20)) 1)))
 ;;; (average pair1) -> pair?
 ;;;   pair1 : pair?
 ;;; Given a pair containing a head element and
@@ -402,13 +409,15 @@
 ;;;   data: string? from a file, csv format.
 (define average-popularity-by-time
   (lambda (proc data)
-    (map average
-      (total-and-number
-        (sort
-          (filter (section not (equal? 0 (cdr _)))
-            (map proc
-              (parse-and-clean data)))
-          car-<)))))
+    (let* ([sorted-data
+           (sort
+             (filter (section not (equal? 0 (cdr _)))
+               (map proc
+                 (parse-and-clean data)))
+             car-<)]
+          [n (caar sorted-data)])
+      (map average
+        (total-and-number sorted-data n)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; HIGH LEVEL GRAPHS ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -435,9 +444,26 @@
 ;;; AVERAGE TRACK POPULARITY BY DAY ;;;
 (with-file-chooser
   (lambda (data)
-    (average-popularity-by-time day-popularity-pair data))) 
+    (average-popularity-by-time
+      (section time-popularity-pair day-of-week _) data)))
 
+(description "Average track popularity by month")
+;;; AVERAGE TRACK POPULARITY BY MONTH
+(with-file-chooser
+  (lambda (data)
+    (average-popularity-by-time
+      (section time-popularity-pair time-month _) data)))
+
+(description "Average track popularity by year")
+;;; AVERAGE TRACK POPULARITY BY YEAR
+(with-file-chooser
+  (lambda (data)
+    (average-popularity-by-time
+      (section time-popularity-pair time-year _) data)))
+
+;;;;;;;;;;;;;;;;;;;;;;
 ;;;; mayu's stuff ;;;;
+;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; (track-popularity data) -> list?
 ;;;   data: data?
