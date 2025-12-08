@@ -427,6 +427,28 @@ track-artist
           (map (o string->number get-artist-popularity)
             (parse-csv data)))))))
 
+(define get-artist
+  (lambda (x)
+    (list-ref x 5)))
+
+(define get-artist-list
+  (lambda (data)
+    (map (section list-ref _ 5) data)))
+
+(define get-artists-with-49-tracks
+  (lambda (data)
+    (filter (section >= (cdr _) 49) (tally-all (get-artist-list data)))))
+
+
+;(define idk-helper
+ ; (lambda (artist-data data)
+  ;  (pair (car artist-data) (filter (section equal? (car artist-data) (get-artist _)) data))))
+
+  
+; (with-file "spotify_data_no_nested_quotes.csv"
+;  (lambda (data)
+;    (let ([d (clean-unusable-rows (parse-csv data))])
+;      (get-artists-with-49-tracks (get-artist-list d)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; test cases ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -563,3 +585,5 @@ track-artist
   equal? (list (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 1 23)
                                      (pair 1 20)) 1)))
+            (clean-unusable-rows (parse-csv data))))))))
+
