@@ -1,5 +1,3 @@
-; spotify-project.scm
-
 ;; CSC 151 Fall
 ;; Spotify Data Visualization
 ;; Authors: Temni A, Doyeon K, Mayu I, Nick R.
@@ -427,28 +425,46 @@ track-artist
           (map (o string->number get-artist-popularity)
             (parse-csv data)))))))
 
+
+;;; (get-artist x) -> string?
+;;;   x : list?
+;;; returns the artist from the parsed data list
 (define get-artist
-  (lambda (x)
-    (list-ref x 5)))
+  (section list-ref _ 5))
 
-(define get-artist-list
-  (lambda (data)
-    (map (section list-ref _ 5) data)))
 
+;;; (get-artists-with-49-tracks data) -> list?
+;;;   data : list?
+;;; returns all artists with more than 49 tracks and their track counts
 (define get-artists-with-49-tracks
   (lambda (data)
-    (filter (section >= (cdr _) 49) (tally-all (get-artist-list data)))))
+    (filter 
+      (lambda (x) (>= (cdr x) 49)) 
+      (tally-all (map get-artist data)))))
 
 
-;(define idk-helper
- ; (lambda (artist-data data)
-  ;  (pair (car artist-data) (filter (section equal? (car artist-data) (get-artist _)) data))))
+;;; (all-songs-for-artist artist-pair data) -> list?
+;;;   artist-pair : pair?
+;;;   data : list?
+;;; returns all songs for requested artist
+(define all-songs-for-artist
+  (lambda (artist-pair data)
+    (pair (car artist-pair) 
+      (filter (section equal? (car artist-pair) (list-ref _ 5)) data))))
 
-  
-; (with-file "spotify_data_no_nested_quotes.csv"
-;  (lambda (data)
-;    (let ([d (clean-unusable-rows (parse-csv data))])
-;      (get-artists-with-49-tracks (get-artist-list d)))))
+
+;;; (all-songs-for-artist artist-pairs data) -> list?
+;;;   artist-pairs : list?
+;;;   data : list?
+;;; returns all songs for each requested artist in a list
+(define all-songs-for-artists
+  (lambda (artist-pairs data)
+    (map (section all-songs-for-artist _ data) artist-pairs)))
+
+
+(with-file-chooser
+  (lambda (data)
+    (all-songs-for-artists (get-artists-with-49-tracks (parse-csv data)) (parse-csv data))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; test cases ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -585,5 +601,5 @@ track-artist
   equal? (list (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 1 23)
                                      (pair 1 20)) 1)))
-            (clean-unusable-rows (parse-csv data))))))))
+
 
