@@ -1,5 +1,3 @@
-; spotify-project.scm
-
 ;; CSC 151 Fall
 ;; Spotify Data Visualization
 ;; Authors: Temni A, Doyeon K, Mayu I, Nick R.
@@ -585,5 +583,5 @@ track-artist
   equal? (list (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 1 23)
                                      (pair 1 20)) 1)))
-            (clean-unusable-rows (parse-csv data))))))))
+
 
