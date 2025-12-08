@@ -11,6 +11,9 @@
 (import test)
 (import lab)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; multi-purpose functions ;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; (time year month day) -> time?
 ;;;   year: integer?
@@ -40,6 +43,24 @@
 ;;; as a string.
 (define get-release-date
   (section list-ref _ 11))
+
+;;; (get-track-popularity list) -> string?
+;;;   list: list?, row of csv file
+;;; Given a parsed csv file, Returns the track popularity
+;;; as a string.
+(define get-track-popularity
+  (section list-ref _ 3))
+
+;;; (get-track-popularity list) -> string?
+;;;   list: list?, row of csv file
+;;; Given a parsed csv file, Returns the track popularity
+;;; as a string.
+(define get-artist-popularity
+  (section list-ref _ 6))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; day-of-week implementation ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; days-in-months
 ;;; Defines the number of days in each month.
@@ -237,6 +258,10 @@
   equal? 3
   (lambda () (day-of-week (time 1964 12 16))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; visualizing number of tracks by date ;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;; (sort-tally-< tally) -> assoc-list?
 ;;;   tally : tally?
 ;;; When given an assoc-list with numeric
@@ -281,23 +306,9 @@
           "Tallies"
           (map cdr tally)))))
 
-
-;;; (parse-and-clean data) -> list?
-;;;   data : file?
-;;; Parses data into csv and
-;;; Deletes the first and last rows in the dataset.
-(define parse-and-clean
-  (lambda (data)
-    (let ([csv-list (parse-csv data)])
-      (cdr (list-take csv-list (- (length csv-list) 1))))))
-
-
-;;; (get-track-popularity list) -> string?
-;;;   list: list?, row of csv file
-;;; Given a parsed csv file, Returns the track popularity
-;;; as a string.
-(define get-track-popularity
-  (section list-ref _ 3))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; implementing average popularity by date ;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; (time-popularity-pair proc csv-line) -> pair? (of integer?)
 ;;;   proc : procedure? operates on a time and returns 
@@ -325,8 +336,6 @@
 (define car-<
   (lambda (pair1 pair2)
     (< (car pair1) (car pair2))))
-
-
 
 ;;; (total-and-number-helper pairs n total elements) -> assoc-list?
 ;;;   pairs : list of pair values, car = day & cdr = popularity,
@@ -400,7 +409,7 @@
     (sort-tally-<
       (tally-all
         (map (o proc string->time get-release-date)
-          (parse-and-clean data))))))
+          (parse-csv data))))))
 
 ;;; (average-popularity-by-time proc data) -> list?
 ;;;   proc: procedure?, takes one row as input and outputs a pair
@@ -413,14 +422,14 @@
            (sort
              (filter (section not (equal? 0 (cdr _)))
                (map proc
-                 (parse-and-clean data)))
+                 (parse-csv data)))
              car-<)]
           [n (caar sorted-data)])
       (map average
         (total-and-number sorted-data n)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; HIGH LEVEL GRAPHS ;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; HIGH LEVEL / USER-LEVEL ALGORITHMNS ;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (description "Day of the Week VS Released Tracks")
@@ -454,13 +463,6 @@
     (average-popularity-by-time
       (section time-popularity-pair time-month _) data)))
 
-(description "Average track popularity by year")
-;;; AVERAGE TRACK POPULARITY BY YEAR
-(with-file-chooser
-  (lambda (data)
-    (average-popularity-by-time
-      (section time-popularity-pair time-year _) data)))
-
 ;;;;;;;;;;;;;;;;;;;;;;
 ;;;; mayu's stuff ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -472,17 +474,9 @@
   (with-file-chooser
     (lambda (data)
       (map (o string->number get-track-popularity)
-        (parse-and-clean data)))))
+        (parse-csv data)))))
 
 track-popularity
-
-
-;;; (get-track-popularity list) -> string?
-;;;   list: list?, row of csv file
-;;; Given a parsed csv file, Returns the track popularity
-;;; as a string.
-(define get-artist-popularity
-  (section list-ref _ 6))
 
 ;;; (artist-popularity data) -> list?
 ;;;   data: data?
@@ -491,10 +485,9 @@ track-popularity
   (with-file-chooser
     (lambda (data)
       (map (o string->number get-artist-popularity)
-        (parse-and-clean data)))))
+        (parse-csv data)))))
 
 artist-popularity
-
 
 ;;; (track-artist data) -> list?
 ;;;   data: data?
@@ -506,9 +499,9 @@ artist-popularity
       (filter (section not (equal? 0 (car _)))
         (map pair
           (map (o string->number get-track-popularity)
-            (parse-and-clean data))
+            (parse-csv data))
           (map (o string->number get-artist-popularity)
-            (parse-and-clean data)))))))
+            (parse-csv data)))))))
 
 track-artist
 
@@ -529,6 +522,10 @@ track-artist
       (filter (section not (equal? 0 (car _)))
         (map pair
           (map (o string->number get-track-popularity)
-            (parse-and-clean data))
+            (parse-csv data))
           (map (o string->number get-artist-popularity)
-            (parse-and-clean data)))))))
+            (parse-csv data)))))))
+
+(with-file-chooser
+  (lambda (data)
+    (parse-csv data)))
