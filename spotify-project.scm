@@ -1,5 +1,3 @@
-; spotify-project.scm
-
 ;; CSC 151 Fall
 ;; Spotify Data Visualization
 ;; Authors: Temni A, Doyeon K, Mayu I, Nick R.
@@ -367,65 +365,33 @@
 ;;;; mayu's stuff ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;
 
-;;; (track-popularity data) -> list?
-;;;   data: data?
-;;; Returns a list of track popularity scores.
-(define track-popularity
-  (with-file-chooser
-    (lambda (data)
-      (map (o string->number get-track-popularity)
-        (parse-csv data)))))
+;;; Scatterplot of artist popularity and track popularity ;;;
+(description "Track popularity VS Artist popularity")
 
-track-popularity
-
-;;; (artist-popularity data) -> list?
-;;;   data: data?
-;;; Returns a list of artist popularity scores.
-(define artist-popularity
-  (with-file-chooser
-    (lambda (data)
-      (map (o string->number get-artist-popularity)
-        (parse-csv data)))))
-
-artist-popularity
-
-
-;;; (track-artist data) -> list?
-;;;   data: data?
-;;; Returns a list of pairs of track popularity and artist popularity 
-;;; (removed the pairs that have 0 as a track popularity score).
-(define track-artist
-  (with-file-chooser
-    (lambda (data)
-      (filter (section not (equal? 0 (car _)))
-        (map pair
-          (map (o string->number get-track-popularity)
-            (parse-csv data))
-          (map (o string->number get-artist-popularity)
-            (parse-csv data)))))))
-
-track-artist
-
-;;; Scatterplot of track popularity and artist popularity ;;;
 (define scatter-for-track-artist
   (lambda (lst)
     (with-plot-options
-      (list (pair "x-label" "Track popularity")
-            (pair "y-label" "Artist popularity")
-            (pair "title" "Scatter plot"))
+      (list (pair "x-label" "Artist popularity")
+            (pair "y-label" "Track popularity")
+            (pair "title" "Track popularity vs artist popularity"))
     (plot-linear
-      (dataset-scatter "Track-popularity and artist-popularity"
+      (dataset-scatter "Tracks"
         lst)))))
 
 (with-file-chooser
   (lambda (data)
-    (scatter-for-track-artist
-      (filter (section not (equal? 0 (car _)))
-        (map pair
-          (map (o string->number get-track-popularity)
-            (parse-csv data))
-          (map (o string->number get-artist-popularity)
-            (parse-csv data)))))))
+    (let* ([parsed-data (parse-csv data)]
+           [artist-pop (map (o string->number get-artist-popularity)
+             (parse-csv data))] 
+           [track-pop (map (o string->number get-track-popularity)
+              (parse-csv data))]
+           [artist-track-pair (map pair artist-pop track-pop)])
+      (scatter-for-track-artist
+        (filter 
+          (lambda (x) 
+            (and (not (equal? (car x) 0))
+                 (not (equal? (cdr x) 0))))
+          artist-track-pair)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -705,5 +671,3 @@ track-artist
   equal? (list (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 1 23)
                                      (pair 1 20)) 1)))
-
-
