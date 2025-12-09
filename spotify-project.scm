@@ -1,3 +1,5 @@
+; spotify-project.scm
+
 ;; CSC 151 Fall
 ;; Spotify Data Visualization
 ;; Authors: Temni A, Doyeon K, Mayu I, Nick R.
@@ -426,6 +428,10 @@ track-artist
             (parse-csv data)))))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;; Track Popularity by Artist ;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;; (get-artist x) -> string?
 ;;;   x : list?
 ;;; returns the artist from the parsed data list
@@ -433,14 +439,33 @@ track-artist
   (section list-ref _ 5))
 
 
-;;; (get-artists-with-49-tracks data) -> list?
+;;; (get-artists-with-70-tracks data) -> list?
 ;;;   data : list?
-;;; returns all artists with more than 49 tracks and their track counts
-(define get-artists-with-49-tracks
+;;; returns all artists with more than 70 tracks and their track counts
+(define get-artists-with-70-tracks
   (lambda (data)
     (filter 
-      (lambda (x) (>= (cdr x) 49)) 
+      (lambda (x) (>= (cdr x) 70)) 
       (tally-all (map get-artist data)))))
+
+
+(define lst-average
+  (lambda (lst)
+    (let ([l (length lst)])
+      (if (equal? l 0)
+        0
+        (/ (apply + lst) l)))))
+
+
+(define list-by-day
+  (lambda (lst n)
+    (match n
+      [-1 null]
+      [_ (cons 
+          (lst-average (map 
+            (section cdr _) 
+            (filter (section equal? n (car _)) lst)))
+          (list-by-day lst (- n 1)))])))
 
 
 ;;; (all-songs-for-artist artist-pair data) -> list?
@@ -450,8 +475,8 @@ track-artist
 (define all-songs-for-artist
   (lambda (artist-pair data)
     (pair (car artist-pair) 
-      (filter (section equal? (car artist-pair) (list-ref _ 5)) data))))
-
+      (list-by-day (map (section time-popularity-pair day-of-week _)
+        (filter (section equal? (car artist-pair) (list-ref _ 5)) data)) 6))))
 
 ;;; (all-songs-for-artist artist-pairs data) -> list?
 ;;;   artist-pairs : list?
@@ -462,9 +487,88 @@ track-artist
     (map (section all-songs-for-artist _ data) artist-pairs)))
 
 
+(define graphable-pair
+  (lambda (lst)
+    (map pair (range 7) lst)))
+
 (with-file-chooser
   (lambda (data)
-    (all-songs-for-artists (get-artists-with-49-tracks (parse-csv data)) (parse-csv data))))
+    (let* ([lst (all-songs-for-artists 
+                  (get-artists-with-70-tracks 
+                    (parse-csv data)) (parse-csv data))]
+           [taylor-swift (graphable-pair (cdr (list-ref lst 0)))]
+           [lady-gaga (graphable-pair (cdr (list-ref lst 1)))]
+           [drake (graphable-pair (cdr (list-ref lst 2)))]
+           [ariana-grande (graphable-pair (cdr (list-ref lst 3)))])
+    (with-plot-options
+      (list (pair "x-label" "Day of Week")
+            (pair "y-label" "Track popularity")
+            (pair "title" "Linear graph"))
+    (plot-linear
+      (dataset-line "taylor-swift"
+        taylor-swift)
+      (dataset-line "lady-gaga"
+        lady-gaga)
+      (dataset-line "drake"
+        drake)
+      (dataset-line "ariana-grande"
+        ariana-grande))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;; Track Popularity by Genre ;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;; (get-genre x) -> string?
+;;;   x : list?
+;;; returns the genre from the parsed data list
+(define get-genre
+  (section list-ref _ 8))
+
+
+;;; (get-genres-with-20-tracks data) -> list?
+;;;   data : list?
+;;; returns all artists with more than 20 tracks and their track counts
+(define get-genre-with-70-tracks
+  (lambda (data)
+    (cdr (filter 
+      (lambda (x) (>= (cdr x) 70)) 
+      (tally-all (map get-genre data))))))
+
+
+(define all-songs-for-genre
+  (lambda (genre-pair data)
+    (pair (car genre-pair) 
+      (list-by-day (map (section time-popularity-pair day-of-week _)
+        (filter (section equal? (car genre-pair) (list-ref _ 8)) data)) 6))))
+
+
+(define all-songs-for-genres
+  (lambda (genre-pairs data)
+    (map (section all-songs-for-genre _ data) genre-pairs)))
+
+
+(with-file-chooser
+  (lambda (data)
+    (let* ([lst (all-songs-for-genres 
+                  (get-genre-with-70-tracks 
+                    (parse-csv data)) (parse-csv data))]
+           [pop (graphable-pair (cdr (list-ref lst 6)))]
+           [rap (graphable-pair (cdr (list-ref lst 8)))]
+           [soundtrack (graphable-pair (cdr (list-ref lst 9)))])
+    (with-plot-options
+      (list (pair "x-label" "Day of Week")
+            (pair "y-label" "Track popularity")
+            (pair "title" "Linear graph"))
+    (plot-linear
+      (dataset-line "pop"
+        pop)
+      (dataset-line "rap"
+        rap)
+      (dataset-line "soundtrack"
+        soundtrack))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; test cases ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
