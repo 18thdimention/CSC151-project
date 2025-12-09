@@ -374,8 +374,6 @@
       (map (o string->number get-track-popularity)
         (parse-csv data)))))
 
-track-popularity
-
 ;;; (artist-popularity data) -> list?
 ;;;   data: data?
 ;;; Returns a list of artist popularity scores.
@@ -384,9 +382,6 @@ track-popularity
     (lambda (data)
       (map (o string->number get-artist-popularity)
         (parse-csv data)))))
-
-artist-popularity
-
 
 ;;; (track-artist data) -> list?
 ;;;   data: data?
@@ -402,17 +397,17 @@ artist-popularity
           (map (o string->number get-artist-popularity)
             (parse-csv data)))))))
 
-track-artist
+;;; Scatterplot of artist popularity and track popularity ;;;
 
-;;; Scatterplot of track popularity and artist popularity ;;;
+(description "Track popularity VS Artist popularity")
 (define scatter-for-track-artist
   (lambda (lst)
     (with-plot-options
-      (list (pair "x-label" "Track popularity")
-            (pair "y-label" "Artist popularity")
-            (pair "title" "Scatter plot"))
+      (list (pair "x-label" "Artist popularity")
+            (pair "y-label" "Track popularity")
+            (pair "title" "Track popularity vs artist popularity"))
     (plot-linear
-      (dataset-scatter "Track-popularity and artist-popularity"
+      (dataset-scatter "Tracks"
         lst)))))
 
 (with-file-chooser
@@ -420,9 +415,9 @@ track-artist
     (scatter-for-track-artist
       (filter (section not (equal? 0 (car _)))
         (map pair
-          (map (o string->number get-track-popularity)
-            (parse-csv data))
           (map (o string->number get-artist-popularity)
+            (parse-csv data))
+          (map (o string->number get-track-popularity)
             (parse-csv data)))))))
 
 (define get-artist
@@ -583,5 +578,3 @@ track-artist
   equal? (list (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 1 23)
                                      (pair 1 20)) 1)))
-
-
