@@ -14,16 +14,18 @@
 ;;;; constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; list of days for use in graphing
 (define list-of-days
   (list "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday"
         "Friday" "Saturday"))
 
+;;; list of months for use in graphing
 (define list-of-months
   (list "January" "February" "March" "April" "May" "June" "July"
         "August" "September" "October" "November" "December"))
 
-;;; days-in-months
-;;; Defines the number of days in each month.
+;;; defines number of days in each (non-leap year) month, for use
+;;; in implementing day-of-week
 (define days-in-months
   (list (pair 1 31)
         (pair 2 28) 
@@ -40,13 +42,15 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; multi-purpose functions ;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; general purpose functions ;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; (time year month day) -> time?
 ;;;   year: integer?
 ;;;   month: integer?
 ;;;   day: integer?
+;;; Data structure to store dates in a more
+;;; usable format.
 (struct time (year month day))
 
 ;;; (string->time str) -> time?
@@ -77,17 +81,17 @@
 
 ;;; (get-track-popularity list) -> string?
 ;;;   list: list?, row of csv file
-;;; Given a parsed csv file, Returns the track popularity
+;;; Given a parsed csv file, Returns the artist popularity
 ;;; as a string.
 (define get-artist-popularity
   (section list-ref _ 6))
 
-;;; (chart-tally x-labels dataset-options dataset-name tally) -> histogram?
-;;;   dataset-options: list of key-value pairs
+;;; (chart-tally x-labels dataset-options dataset-name tally) -> plot? bar-chart
 ;;;   x-labels: list? of string?, (equal? (length x-labels) (length tally))
+;;;   dataset-options: list of key-value pairs
 ;;;   dataset-name: string?
 ;;;   tally : assoc-list?
-;;; Plots a histogram with the y axis consisting of the cdr of 
+;;; Plots a histogram with the y axis consisting of the value of 
 ;;; every tally pair and the x axis consisting of the list of strings.
 (define chart-tally
   (lambda (x-labels dataset-options dataset-name tally)
@@ -116,7 +120,7 @@
 ;;; (days-in-year year) -> integer?
 ;;;   year : integer?
 ;;; Checks if a day is a leap year and
-;;; returns the number of days in the year
+;;; returns the number of days in the year.
 (define days-in-year
   (lambda (year)
     (if (leap-year? year)
@@ -133,7 +137,7 @@
     (match month
       [0 0]
       [_ (+ (assoc-ref month months-list) 
-         (months->days-helper (- month 1) months-list))])))
+            (months->days-helper (- month 1) months-list))])))
 
 ;;; (months->days month leap?) -> integer?
 ;;;   month : integer?
@@ -153,26 +157,29 @@
   (lambda (year)
     (match year
       [1950 0]
-      [_ (+ (days-in-year (- year 1)) (years->days (- year 1)))])))
+      [_ (+ (days-in-year (- year 1)) 
+            (years->days (- year 1)))])))
 
 ;;; (time->timestamp time) -> integer?
 ;;;   time : time?
 ;;; Converts a time data structure into
-;;; days since january 1st, 1970
+;;; days since january 1st, 1950
 (define time->timestamp
   (lambda (time)
       (- (+ (time-day time)
-            (months->days (- (time-month time) 1) (leap-year? (time-year time)))
+            (months->days (- (time-month time) 1) 
+                          (leap-year? (time-year time)))
             (years->days (time-year time)))
          1)))
 
 ;;; (day-of-week time) -> integer?
 ;;;   time : time?
 ;;; Converts a time into a day of the week,
-;;; Where sunday = 0, Monday = 1 and so on.
+;;; Where Sunday = 0, Monday = 1 and so on.
 (define day-of-week
   (lambda (time)
-    (let ([day-offset (- (remainder (+ (time->timestamp time) 4) 7) 4)])
+    (let ([day-offset 
+           (- (remainder (+ (time->timestamp time) 4) 7) 4)])
       (if (< day-offset 0)
           (+ day-offset 7)
           day-offset))))
@@ -183,20 +190,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; (sort-tally-< tally) -> assoc-list?
-;;;   tally : tally?
+;;;   tally : assoc-list?
 ;;; When given an assoc-list with numeric
 ;;; keys, sorts the keys in ascending order
-;;; and returns the tally.
+;;; and returns the sorted list.
 (define sort-tally-<
   (lambda (tally)
-    (let ([sorted-keys (sort (map car tally) <)])
-      (map (lambda (key) (pair key (assoc-ref key tally)))
+    (let ([sorted-keys 
+           (sort (map car tally) <)])
+      (map (lambda (key) 
+             (pair key (assoc-ref key tally)))
         sorted-keys))))
 
 ;;; (tally-by-time proc data) -> list?
 ;;;   proc : procedure?, operates on a time and 
-;;;          returns an integer representing a specific element.
+;;;          returns an integer representing a specific time element.
 ;;;   data : string? from a file, csv format.
+;;; Returns a sorted tally with keys representing a time elements
+;;; and values representing the number of tracks that have that 
+;;; time element.
 (define tally-by-time
   (lambda (proc data)
     (sort-tally-<
@@ -236,39 +248,38 @@
   (lambda (pair1 pair2)
     (< (car pair1) (car pair2))))
 
-;;; (total-and-number-helper pairs n total elements) -> assoc-list?
-;;;   pairs : list of pair values, car = day & cdr = popularity,
+;;; (total-and-number-h pairs n total elements) -> assoc-list?
+;;;   pairs : list of pair values, car = time & cdr = popularity,
 ;;;           ascending order
-;;;   n : zero?
+;;;   n : integer?
 ;;;   total : zero?
 ;;;   elements : zero?
 ;;; Helper for total-and-number.
-(define total-and-number-helper
+(define total-and-number-h
   (lambda (pairs n total elements)
     (match pairs
       [null (cons (pair n (list total elements)) null)]
       [(cons head tail)
        (if (= n (car head))
-           (total-and-number-helper tail n (+ total (cdr head)) (+ elements 1))
+           (total-and-number-h tail n (+ total (cdr head)) (+ elements 1))
            (cons (pair n (list total elements)) 
-                 (total-and-number-helper tail (+ n 1) (cdr head) 1)))])))
+                 (total-and-number-h tail (car head) (cdr head) 1)))])))
 
-;;; (total-and-number-helper pairs n total elements) -> assoc-list?
+;;; (total-and-number-helper pairs) -> assoc-list?
 ;;;   pairs : list of pair values, car = time element & cdr = popularity,
 ;;;           ascending order
-;;;   n : integer? starting point of time value
 ;;; Given a list of pair values, returns an association list with the time
-;;; as a key and the total summed score and number of elements as a value.
+;;; as a key and the total summed score and number of elements as values.
 (define total-and-number
-  (lambda (pairs n)
-    (total-and-number-helper pairs n 0 0)))
+  (lambda (pairs)
+    (total-and-number-h pairs (caar pairs) 0 0)))
 
 ;;; (average pair1) -> pair?
 ;;;   pair1 : pair?
 ;;; Given a pair containing a head element and
-;;; a list tail, returns the average by dividing the
-;;; first element of the list by the second element.
-(define average
+;;; a list tail with two numeric elements, returns the average 
+;;; by dividing the first element of the list by the second element.
+(define average-pair
   (lambda (pair1)
     (let* ([tail (cdr pair1)]
            [head (car pair1)]
@@ -288,19 +299,18 @@
              (filter (section not (equal? 0 (cdr _)))
                (map proc
                  (parse-csv data)))
-             car-<)]
-          [n (caar sorted-data)])
-      (map average
-        (total-and-number sorted-data n)))))
+             car-<)])
+      (map average-pair
+        (total-and-number sorted-data)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; HIGH LEVEL / USER-LEVEL ALGORITHMNS ;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(description "Day of the Week VS Released Tracks")
-
-;;; DAYS BAR GRAPH ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(description "Amount of released tracks vs. day of week")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define days-dataset-options
   (list (pair "background-color" "darkgreen")))
@@ -314,9 +324,9 @@
       (chart-tally list-of-days days-dataset-options "Amount released on given day"
         (tally-by-time day-of-week data)))))
 
-(description "Month of the Year VS Released Tracks")
-
-;;; MONTHS BAR GRAPH ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(description "Amount of released tracks vs. month")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define months-dataset-options
   (list (pair "background-color" "red")))
@@ -330,9 +340,10 @@
       (chart-tally list-of-months months-dataset-options "Amount released in given month"
         (tally-by-time time-month data)))))
 
-(description "Average track popularity by day")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(description "Average track popularity vs. day of week")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;; AVERAGE TRACK POPULARITY BY DAY ;;;
 (define day-pop-dataset-options
   (list (pair "background-color" "orange")))
 
@@ -346,8 +357,10 @@
         (average-popularity-by-time
           (section time-popularity-pair day-of-week _) data)))))
 
-(description "Average track popularity by month")
-;;; AVERAGE TRACK POPULARITY BY MONTH
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(description "Average track popularity vs. month")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define month-pop-dataset-options
   (list (pair "background-color" "pink")))
   
@@ -361,12 +374,9 @@
         (average-popularity-by-time
           (section time-popularity-pair time-month _) data)))))
 
-;;;;;;;;;;;;;;;;;;;;;;
-;;;; mayu's stuff ;;;;
-;;;;;;;;;;;;;;;;;;;;;;
-
-;;; Scatterplot of artist popularity and track popularity ;;;
-(description "Track popularity VS Artist popularity")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(description "Track popularity vs artist popularity")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define scatter-for-track-artist
   (lambda (lst)
@@ -394,9 +404,9 @@
           artist-track-pair)))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;; Track Popularity by Artist ;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(description "Average track popularity vs. day: by artist")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; (get-artist x) -> string?
 ;;;   x : list?
@@ -467,23 +477,23 @@
            [drake (graphable-pair (cdr (list-ref lst 2)))]
            [ariana-grande (graphable-pair (cdr (list-ref lst 3)))])
     (with-plot-options
-      (list (pair "x-label" "Day of Week")
-            (pair "y-label" "Track popularity")
-            (pair "title" "Linear graph"))
+      (list (pair "x-label" "Day of week (Sunday = 0, Saturday = 6)")
+            (pair "y-label" "Average track popularity")
+            (pair "title" "Average track popularity vs. day: by artist"))
     (plot-linear
-      (dataset-line "taylor-swift"
+      (dataset-line "Taylor Swift"
         taylor-swift)
-      (dataset-line "lady-gaga"
+      (dataset-line "Lady Gaga"
         lady-gaga)
-      (dataset-line "drake"
+      (dataset-line "Drake"
         drake)
-      (dataset-line "ariana-grande"
+      (dataset-line "Ariana Grande"
         ariana-grande))))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;; Track Popularity by Genre ;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(description "Average track popularity vs. day: by genre")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;; (get-genre x) -> string?
@@ -524,9 +534,9 @@
            [rap (graphable-pair (cdr (list-ref lst 8)))]
            [soundtrack (graphable-pair (cdr (list-ref lst 9)))])
     (with-plot-options
-      (list (pair "x-label" "Day of Week")
-            (pair "y-label" "Track popularity")
-            (pair "title" "Linear graph"))
+      (list (pair "x-label" "Day of week (Sunday = 0, Saturday = 6)")
+            (pair "y-label" "Average track popularity")
+            (pair "title" "Average track popularity vs day: by genre"))
     (plot-linear
       (dataset-line "pop"
         pop)
@@ -649,25 +659,29 @@
   (lambda () (sort-tally-< 
                (list (pair 0 234) (pair 12 23) (pair 234 2) (pair 1 34)))))
 
-(test-case "total-and-number: empty list"
-  equal? (list (pair 0 (list 0 0)))
-  (lambda () (total-and-number null 0)))
-
 (test-case "total-and-number: one pair"
   equal? (list (pair 0 (list 12 1)))
-  (lambda () (total-and-number (list (pair 0 12)) 0)))
+  (lambda () (total-and-number (list (pair 0 12)))))
 
 (test-case "total-and-number: multiple pairs pair"
   equal? (list (pair 0 (list 55 3)))
-  (lambda () (total-and-number (list (pair 0 12) (pair 0 20) (pair 0 23)) 0)))
+  (lambda () (total-and-number (list (pair 0 12) (pair 0 20) (pair 0 23)))))
 
 
 (test-case "total-and-number: n increments"
   equal? (list (pair 0 (list 55 3)) (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 0 12) (pair 0 20) (pair 0 23) (pair 1 23)
-                                     (pair 1 20)) 0)))
+                                     (pair 1 20)))))
 
 (test-case "total-and-number: start with 1"
   equal? (list (pair 1 (list 43 2)))
   (lambda () (total-and-number (list (pair 1 23)
-                                     (pair 1 20)) 1)))
+                                     (pair 1 20)))))
+
+(test-case "total-and-number: n skips 2"
+  equal? (list (pair 1 (list 43 2)) (pair 3 (list 12 2)))
+  (lambda () (total-and-number (list (pair 1 23)
+                                     (pair 1 20)
+                                     (pair 3 6)
+                                     (pair 3 6)))))
+  
