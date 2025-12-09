@@ -365,41 +365,9 @@
 ;;;; mayu's stuff ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;
 
-;;; (track-popularity data) -> list?
-;;;   data: data?
-;;; Returns a list of track popularity scores.
-(define track-popularity
-  (with-file-chooser
-    (lambda (data)
-      (map (o string->number get-track-popularity)
-        (parse-csv data)))))
-
-;;; (artist-popularity data) -> list?
-;;;   data: data?
-;;; Returns a list of artist popularity scores.
-(define artist-popularity
-  (with-file-chooser
-    (lambda (data)
-      (map (o string->number get-artist-popularity)
-        (parse-csv data)))))
-
-;;; (track-artist data) -> list?
-;;;   data: data?
-;;; Returns a list of pairs of track popularity and artist popularity 
-;;; (removed the pairs that have 0 as a track popularity score).
-(define track-artist
-  (with-file-chooser
-    (lambda (data)
-      (filter (section not (equal? 0 (car _)))
-        (map pair
-          (map (o string->number get-track-popularity)
-            (parse-csv data))
-          (map (o string->number get-artist-popularity)
-            (parse-csv data)))))))
-
 ;;; Scatterplot of artist popularity and track popularity ;;;
-
 (description "Track popularity VS Artist popularity")
+
 (define scatter-for-track-artist
   (lambda (lst)
     (with-plot-options
@@ -412,13 +380,18 @@
 
 (with-file-chooser
   (lambda (data)
-    (scatter-for-track-artist
-      (filter (section not (equal? 0 (car _)))
-        (map pair
-          (map (o string->number get-artist-popularity)
-            (parse-csv data))
-          (map (o string->number get-track-popularity)
-            (parse-csv data)))))))
+    (let* ([parsed-data (parse-csv data)]
+           [artist-pop (map (o string->number get-artist-popularity)
+             (parse-csv data))] 
+           [track-pop (map (o string->number get-track-popularity)
+              (parse-csv data))]
+           [artist-track-pair (map pair artist-pop track-pop)])
+      (scatter-for-track-artist
+        (filter 
+          (lambda (x) 
+            (and (not (equal? (car x) 0))
+                 (not (equal? (cdr x) 0))))
+          artist-track-pair)))))
 
 (define get-artist
   (lambda (x)
