@@ -415,6 +415,9 @@
       (tally-all (map get-artist data)))))
 
 
+;;; (lst-average lst) -> number?
+;;;   lst : list?
+;;; returns the average of a list
 (define lst-average
   (lambda (lst)
     (let ([l (length lst)])
@@ -423,6 +426,11 @@
         (/ (apply + lst) l)))))
 
 
+;;; (list-by-day lst n) -> list?
+;;;   lst : list?
+;;;   n : integer?
+;;; takes pair of the artist and the day of week and track popularity
+;;; association list and separates the association lists into day of week
 (define list-by-day
   (lambda (lst n)
     (match n
@@ -444,6 +452,7 @@
       (list-by-day (map (section time-popularity-pair day-of-week _)
         (filter (section equal? (car artist-pair) (list-ref _ 5)) data)) 6))))
 
+
 ;;; (all-songs-for-artist artist-pairs data) -> list?
 ;;;   artist-pairs : list?
 ;;;   data : list?
@@ -453,9 +462,14 @@
     (map (section all-songs-for-artist _ data) artist-pairs)))
 
 
+;;; (graphable-pair lst) -> list?
+;;;   lst : list?
+;;; takes a list and creates an association list with the index of the 
+;;; element to make it graphable on a line graph
 (define graphable-pair
   (lambda (lst)
     (map pair (range 7) lst)))
+
 
 (with-file-chooser
   (lambda (data)
@@ -503,6 +517,10 @@
       (tally-all (map get-genre data))))))
 
 
+;;; (all-songs-for-genre genre-pair data) -> list?
+;;;   genre-pair : pair?
+;;;   data : list?
+;;; returns all songs for requested genre
 (define all-songs-for-genre
   (lambda (genre-pair data)
     (pair (car genre-pair) 
@@ -510,6 +528,10 @@
         (filter (section equal? (car genre-pair) (list-ref _ 8)) data)) 6))))
 
 
+;;; (all-songs-for-genre genre-pair data) -> list?
+;;;   genre-pair : list?
+;;;   data : list?
+;;; returns all songs for each requested genre in a list
 (define all-songs-for-genres
   (lambda (genre-pairs data)
     (map (section all-songs-for-genre _ data) genre-pairs)))
@@ -520,7 +542,7 @@
     (let* ([lst (all-songs-for-genres 
                   (get-genre-with-70-tracks 
                     (parse-csv data)) (parse-csv data))]
-           [pop (graphable-pair (cdr (list-ref lst 6)))]
+           [pop (graphable-pair (cdr (list-ref lst 5)))]
            [rap (graphable-pair (cdr (list-ref lst 8)))]
            [soundtrack (graphable-pair (cdr (list-ref lst 9)))])
     (with-plot-options
