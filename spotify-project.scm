@@ -202,19 +202,19 @@
              (pair key (assoc-ref key tally)))
         sorted-keys))))
 
-;;; (tally-by-time proc data) -> list?
+;;; (tally-by-time proc csv-list) -> list?
 ;;;   proc : procedure?, operates on a time and 
 ;;;          returns an integer representing a specific time element.
-;;;   data : string? from a file, csv format.
+;;;   csv-list : list? parsed csv file
 ;;; Returns a sorted tally with keys representing a time elements
 ;;; and values representing the number of tracks that have that 
 ;;; time element.
 (define tally-by-time
-  (lambda (proc data)
+  (lambda (proc csv-list)
     (sort-tally-<
       (tally-all
         (map (o proc string->time get-release-date)
-          (parse-csv data))))))
+          csv-list)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -287,21 +287,19 @@
                        (cadr tail))])
       (pair head average))))
 
-;;; (average-popularity-by-time proc data) -> list?
-;;;   proc: procedure?, takes one row as input and outputs a pair
-;;;         of an integer representing a time element and and integer
-;;;         representing the track popularity.
-;;;   data: string? from a file, csv format.
+;;; (average-popularity-by-time pair-list) -> assoc-list?
+;;;   pair-list: list of pairs with integer representing a time
+;;;              element and integer representing track popularity.
+;;; Creates an association list with time elements and their average
+;;; track popularity, sorted in ascending order.
 (define average-popularity-by-time
-  (lambda (proc data)
-    (let* ([sorted-data
-           (sort
-             (filter (section not (equal? 0 (cdr _)))
-               (map proc
-                 (parse-csv data)))
-             car-<)])
-      (map average-pair
-        (total-and-number sorted-data)))))
+  (lambda (pair-list)
+    (map average-pair
+      (total-and-number
+        (sort
+          (filter (section not (equal? 0 (cdr _)))
+            pair-list)
+          car-<)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -322,7 +320,9 @@
             (pair "x-label" "Days")
             (pair "y-label" "Number of tracks"))
       (chart-tally list-of-days days-dataset-options "Amount released on given day"
-        (tally-by-time day-of-week data)))))
+        (tally-by-time 
+          day-of-week 
+          (parse-csv data))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (description "Amount of released tracks vs. month")
@@ -338,11 +338,14 @@
             (pair "x-label" "Months")
             (pair "y-label" "Number of tracks"))
       (chart-tally list-of-months months-dataset-options "Amount released in given month"
-        (tally-by-time time-month data)))))
+        (tally-by-time 
+          time-month 
+          (parse-csv data))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (description "Average track popularity vs. day of week")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (define day-pop-dataset-options
   (list (pair "background-color" "orange")))
@@ -355,7 +358,8 @@
             (pair "y-label" "Average track popularity"))
       (chart-tally list-of-days day-pop-dataset-options "Average track popularity on given day"
         (average-popularity-by-time
-          (section time-popularity-pair day-of-week _) data)))))
+          (map (section time-popularity-pair day-of-week _)
+            (parse-csv data)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (description "Average track popularity vs. month")
@@ -372,10 +376,11 @@
             (pair "y-label" "Average track popularity"))
       (chart-tally list-of-months month-pop-dataset-options "Average track popularity in given month"
         (average-popularity-by-time
-          (section time-popularity-pair time-month _) data)))))
+          (map (section time-popularity-pair time-month _)
+            (parse-csv data)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(description "Track popularity vs artist popularity")
+(description "Track popularity vs. artist popularity")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define scatter-for-track-artist
@@ -383,7 +388,7 @@
     (with-plot-options
       (list (pair "x-label" "Artist popularity")
             (pair "y-label" "Track popularity")
-            (pair "title" "Track popularity vs artist popularity"))
+            (pair "title" "Track popularity vs. artist popularity"))
     (plot-linear
       (dataset-scatter "Tracks"
         lst)))))
