@@ -1,9 +1,14 @@
-;; CSC 151 Fall
+;; CSC-151-02 Fall
 ;; Spotify Data Visualization
 ;; Authors: Temni A, Doyeon K, Mayu I, Nick R.
-;; Date: 12/10/2025
+;; Date: 12/11/2025
 ;; Acknowledgements:
-;;   ACKNOWLEDGEMENTS HERE
+;; Our csv did not initially run in Scamper due to nested quotation marks,
+;; so we used the code from this Stack Overflow post to automate the process
+;; of modifying lines with quotation marks.
+;;
+;;   Adam.Er8. "Remove double quotes from CSV file." Stack Overflow.
+;;     4 July 2019, 13:56, https://stackoverflow.com/q/56889437.
 
 (import data)
 (import test)
@@ -60,7 +65,9 @@
 ;;; data structure.
 (define string->time
   (lambda (str)
-    (let ([time-list (map string->number (string-split str "-"))])
+    (let ([time-list 
+          (map string->number 
+            (string-split str "-"))])
       (time (car time-list)
             (cadr time-list)
             (caddr time-list)))))
@@ -143,7 +150,7 @@
 ;;;   month : integer?
 ;;;   leap? : boolean?
 ;;; Returns the number of days in the months since the 
-;;; start of the year, adjusted for a leap year.
+;;; start of the year, adjusted for a leap year when leap? is true.
 (define months->days 
   (lambda (month leap?)
     (if leap?
@@ -226,7 +233,7 @@
 ;;;          an integer representing a specific element.
 ;;;   csv-line : list? line of the csv file
 ;;; Returns a pair in the form of
-;;; (pair time-element track-popularity)
+;;; (pair time track-popularity)
 (define time-popularity-pair
   (lambda (proc csv-line)
     (let ([track-popularity 
@@ -337,7 +344,10 @@
       (list (pair "title" "Amount of released tracks vs. month")
             (pair "x-label" "Months")
             (pair "y-label" "Number of tracks"))
-      (chart-tally list-of-months months-dataset-options "Amount released in given month"
+      (chart-tally 
+        list-of-months 
+        months-dataset-options 
+        "Amount released in given month"
         (tally-by-time 
           time-month 
           (parse-csv data))))))
@@ -356,7 +366,10 @@
       (list (pair "title" "Average track popularity vs. day of week")
             (pair "x-label" "Days")
             (pair "y-label" "Average track popularity"))
-      (chart-tally list-of-days day-pop-dataset-options "Average track popularity on given day"
+      (chart-tally 
+        list-of-days 
+        day-pop-dataset-options 
+        "Average track popularity on given day"
         (average-popularity-by-time
           (map (section time-popularity-pair day-of-week _)
             (parse-csv data)))))))
@@ -374,7 +387,10 @@
       (list (pair "title" "Average track popularity vs. month")
             (pair "x-label" "Months")
             (pair "y-label" "Average track popularity"))
-      (chart-tally list-of-months month-pop-dataset-options "Average track popularity in given month"
+      (chart-tally 
+        list-of-months 
+        month-pop-dataset-options 
+        "Average track popularity in given month"
         (average-popularity-by-time
           (map (section time-popularity-pair time-month _)
             (parse-csv data)))))))
@@ -427,7 +443,8 @@
   (lambda (data)
     (filter 
       (lambda (x) (>= (cdr x) 70)) 
-      (tally-all (map get-artist data)))))
+      (tally-all 
+        (map get-artist data)))))
 
 
 ;;; (lst-average lst) -> number?
@@ -451,9 +468,10 @@
     (match n
       [-1 null]
       [_ (cons 
-          (lst-average (map 
-            (section cdr _) 
-            (filter (section equal? n (car _)) lst)))
+          (lst-average 
+            (map (section cdr _) 
+              (filter (section equal? n (car _)) 
+                lst)))
           (list-by-day lst (- n 1)))])))
 
 
@@ -464,8 +482,11 @@
 (define all-songs-for-artist
   (lambda (artist-pair data)
     (pair (car artist-pair) 
-      (list-by-day (map (section time-popularity-pair day-of-week _)
-        (filter (section equal? (car artist-pair) (list-ref _ 5)) data)) 6))))
+      (list-by-day 
+        (map (section time-popularity-pair day-of-week _)
+          (filter (section equal? (car artist-pair) (list-ref _ 5))
+            data)) 
+        6))))
 
 
 ;;; (all-songs-for-artist artist-pairs data) -> list?
@@ -539,8 +560,11 @@
 (define all-songs-for-genre
   (lambda (genre-pair data)
     (pair (car genre-pair) 
-      (list-by-day (map (section time-popularity-pair day-of-week _)
-        (filter (section equal? (car genre-pair) (list-ref _ 8)) data)) 6))))
+      (list-by-day 
+        (map (section time-popularity-pair day-of-week _)
+          (filter (section equal? (car genre-pair) (list-ref _ 8)) 
+            data)) 
+        6))))
 
 
 ;;; (all-songs-for-genre genre-pair data) -> list?
@@ -549,7 +573,8 @@
 ;;; returns all songs for each requested genre in a list
 (define all-songs-for-genres
   (lambda (genre-pairs data)
-    (map (section all-songs-for-genre _ data) genre-pairs)))
+    (map (section all-songs-for-genre _ data) 
+      genre-pairs)))
 
 
 (with-file-chooser
